@@ -1,5 +1,6 @@
 import requests, re
 from bs4 import BeautifulSoup
+from flask.ext.script import Manager
 
 class BadHTTPCodeError(Exception):
     def __init__(self, code):
@@ -11,7 +12,9 @@ class GaanaDownloader():
             'search' : 'http://gaana.com/search/songs/{query}',
             'get_token' : 'http://gaana.com//streamprovider/get_stream_data_v1.php',
             'search_album' : 'http://gaana.com/search/albums/{query}',
-            'album' : 'http://gaana.com/album/{name}'
+            'search_artist' : 'http://gaana.com/search/artists/{query}',
+            'album' : 'http://gaana.com/album/{name}',
+            'artist' : 'http://gaana.com/artist/{name}'
         }
 
     def get_url_contents(self, url):
@@ -43,9 +46,9 @@ class GaanaDownloader():
         else:
             print 'No song found'
 
-    def get_songs_from_album(self, name):
+    def get_songs_from_url(self, name, _type):
         import os
-        url = self.urls['album'].format(name = name)
+        url = self.urls[_type].format(name = name)
         response = self.get_url_contents(url)
         soup = BeautifulSoup(response.content)
         songs = soup.find_all('div',{'id':re.compile('_item_row_')})
@@ -83,7 +86,24 @@ class GaanaDownloader():
             option = raw_input('choose one number: ')
             name = albums[int(option)]['href'].split('/')[-1]
             print name
-            self.get_songs_from_album(name)
+            self.get_songs_from_url(name, 'album')
+
+    def get_search_artist(self, query):
+        url = self.urls['search_artist'].format(query = query)
+        response = self.get_url_contents(url)
+        soup = BeautifulSoup(response.content)
+        print soup
+        artists = soup.find_all('li',{'id':re.compile('_item_row')})
+        if artists:
+            print 'options are:'
+            i = 0
+            for artist in artists:
+                print i,artist.a['href'].split('/')[-1]
+                i+=1
+            option = raw_input('choose one number: ')
+            name = artists[int(option)].a['href'].split('/')[-1]
+            self.get_songs_from_url(name, 'artist')
+
 
     def download_track(self, _id, track_name, dir_name):
         res = requests.post(self.urls['get_token'], data = {'track_id':int(_id), 'protocol':'http', 'quality': 'mp3'})
@@ -104,4 +124,5 @@ if __name__ == '__main__':
     import sys
     query = sys.argv[1]
     d = GaanaDownloader()
-    d.get_search_song(query, 'temp')
+    d.get_search_artist(query)
+    #d.get_search_song(query, 'temp')
