@@ -38,7 +38,7 @@ class GaanaDownloader():
         url = self.urls['get_song_url']
         hashcode = self._create_hashcode(track_id)
         url = url.format(track_id = track_id, album_id = album_id, hashcode = hashcode)
-        response = requests.get(url , headers = {'deviceType':'GaanaAndroidApp', 'appVersion':'V5'}, proxies = proxies )
+        response = requests.get(url , headers = {'deviceType':'GaanaAndroidApp', 'appVersion':'V5'})
         song_url_b64 = response.json()['data']
         song_url = dec(song_url_b64)
         return song_url
@@ -87,7 +87,7 @@ class GaanaDownloader():
         idx = int(raw_input('Which album do you wish to download? Enter S No. :'))
         album_details_url = self.urls['album_details']
         album_details_url = album_details_url.format(album_id = albums_list[idx][0])
-        response = requests.get(album_details_url , headers = {'deviceType':'GaanaAndroidApp', 'appVersion':'V5'}, proxies = proxies )
+        response = requests.get(album_details_url , headers = {'deviceType':'GaanaAndroidApp', 'appVersion':'V5'})
         tracks = response.json()['tracks']
         tracks_list = map(lambda x:[x['track_title'],x['track_id'],x['album_id'],x['album_title'], ','.join(map(lambda y:y['name'], x['artist'])), x['duration']], tracks)
         print 'List of tracks for ', albums_list[idx][1]
