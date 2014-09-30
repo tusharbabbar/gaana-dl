@@ -1,6 +1,6 @@
 Gaana-Dl
 ========
-Its fun listening to your favorite Bollywood songs on <a href='http://gaana.com'>gaana.com</a>.
+Its fun listening to your favourite Bollywood songs on <a href='http://gaana.com'>gaana.com</a>.
 
 Double up the fun by downloading the whole album from gaana.com directly to your computer for free.
 
