@@ -1,13 +1,14 @@
-import requests, re
+import requests, re, sys, os
 from bs4 import BeautifulSoup
 from flask.ext.script import Manager
+from terminaltables import AsciiTable
 
 proxies = {'http':'http://192.168.1.8:8080',
             'https':'http://192.168.1.8:8080'}
 
 class BadHTTPCodeError(Exception):
     def __init__(self, code):
-        print code
+        print(code)
 
 class GaanaDownloader():
     def __init__(self):
@@ -42,9 +43,14 @@ class GaanaDownloader():
         song_url = dec(song_url_b64)
         return song_url
 
-    def _download_track(self, song_url):
+    def _download_track(self, song_url, track_name, dir_name):
         response = self._get_url_contents(song_url)
-        with open('temp.mp3','wb') as f:
+        if 'mp3' in song_url:
+            track_name = track_name + '.mp3'
+        else:
+            track_name = track_name + '.mp4'
+        file_path = dir_name + '/' + track_name
+        with open(file_path,'wb') as f:
             f.write(response.content)
 
     def search_songs(self, query):
@@ -54,7 +60,8 @@ class GaanaDownloader():
         response = self._get_url_contents(url)
         tracks = response.json()['tracks']
         tracks_list = map(lambda x:[x['track_title'],x['track_id'],x['album_id'],x['album_title']], tracks)
-        pprint(tracks_list)
+        for idx, value in enumerate(tracks_list):
+            print idx, value
         i = raw_input('Enter a number :')
         i = int(i)
         song_url = self._get_song_url(tracks_list[i][1], tracks_list[i][2])
@@ -66,19 +73,30 @@ class GaanaDownloader():
         url = url.format(query = query)
         response = self._get_url_contents(url)
         albums = response.json()['tracks']
-        albums_list = map(lambda x:[x['album_id'],x['album_title']], albums)
-        pprint(albums_list)
+        albums_list = map(lambda x:[x['album_id'],x['album_title'], x['language'], x['albumseokey']], albums)
+        tabledata = [['S No.', 'Album Title', 'Album Language']]
+        for idx, value in enumerate(albums_list):
+            tabledata.append([str(idx), value[1], value[2]])
+        table = AsciiTable(tabledata)
+        print table.table
+        idx = int(raw_input('Which album do you wish to download? Enter S No. :'))
         album_details_url = self.urls['album_details']
-        album_details_url = album_details_url.format(album_id = albums_list[0][0])
+        album_details_url = album_details_url.format(album_id = albums_list[idx][0])
         response = requests.get(album_details_url , headers = {'deviceType':'GaanaAndroidApp', 'appVersion':'V5'}, proxies = proxies )
         tracks = response.json()['tracks']
-        #tracks = response.json()['tracks']
-        tracks_list = map(lambda x:[x['track_title'],x['track_id'],x['album_id'],x['album_title']], tracks)
-        pprint(tracks_list)
-        #i = raw_input('Enter a number :')
-        #i = int(i)
-        #song_url = self._get_song_url(tracks_list[i][1], tracks_list[i][2])
-        #self._download_track(song_url)
+        tracks_list = map(lambda x:[x['track_title'],x['track_id'],x['album_id'],x['album_title'], ','.join(map(lambda y:y['name'], x['artist'])), x['duration']], tracks)
+        print 'List of tracks for ', albums_list[idx][1]
+        tabledata = [['S No.', 'Track Title', 'Track Artist', 'Track Duration']]
+        for idy, value in enumerate(tracks_list):
+            duration = '%.2f'
+            tabledata.append([str(idy), value[0], value[4], duration%(float(value[5])/60)])
+        table = AsciiTable(tabledata)
+        print table.table
+        print 'Downloading tracks to %s folder'%albums_list[idx][3]
+        os.system('mkdir %s'%albums_list[idx][3])
+        for item in tracks_list:
+            song_url = self._get_song_url(item[1], item[2])
+            self._download_track(song_url, item[0].replace(' ','-'), albums_list[idx][3])
 
     def _get_url_contents(self, url):
         url = url.replace(' ','%20')
