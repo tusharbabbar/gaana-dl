@@ -26,6 +26,14 @@ class GaanaDownloader():
             'album_details' : 'http://api.gaana.com/index.php?type=album&subtype=album_detail&album_id={album_id}'
         }
 
+    def _get_url_contents(self, url):
+        url = url.replace(' ','%20')
+        response = requests.get(url, proxies = proxies)
+        if response.status_code == 200:
+            return response
+        else:
+            raise BadHTTPCodeError(response.status_code)
+
     def _create_hashcode(self, track_id):
         from base64 import b64encode as en
         import hmac
