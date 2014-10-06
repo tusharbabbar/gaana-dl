@@ -28,7 +28,7 @@ class GaanaDownloader():
 
     def _get_url_contents(self, url):
         url = url.replace(' ','%20')
-        response = requests.get(url, proxies = proxies)
+        response = requests.get(url)
         if response.status_code == 200:
             return response
         else:
