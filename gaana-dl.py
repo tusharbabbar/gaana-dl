@@ -110,8 +110,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     d = GaanaDownloader()
     if args.album:
-        d.search_album(args.album)
+        d.search_albums(args.album)
     elif args.song:
-        d.search_album(args.song)
+        d.search_songs(args.song)
     else:
         print parser.parse_args(['--help'])
