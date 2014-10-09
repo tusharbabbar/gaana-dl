@@ -69,10 +69,9 @@ class GaanaDownloader():
         response = self._get_url_contents(url)
         tracks = response.json()['tracks']
         tracks_list = map(lambda x:[x['track_title'],x['track_id'],x['album_id'],x['album_title'], ','.join(map(lambda y:y['name'], x['artist'])), x['duration']], tracks)
-        tabledata = [['S No.', 'Track Title', 'Track Artist', 'Track Duration']]
+        tabledata = [['S No.', 'Track Title', 'Track Artist', 'Album']]
         for idx, value in enumerate(tracks_list):
-            duration = '%.2f'
-            tabledata.append([str(idx), value[0], value[4], duration%(float(value[5])/60)])
+            tabledata.append([str(idx), value[0], value[4], value[3]])
         table = AsciiTable(tabledata)
         print table.table
         idx = int(raw_input('Which album do you wish to download? Enter S No. :'))
@@ -82,14 +81,14 @@ class GaanaDownloader():
 
     def search_albums(self, query):
         from pprint import pprint
-        url = self.urls['search_songs_new']
+        url = self.urls['search_albums_new']
         url = url.format(query = query)
         response = self._get_url_contents(url)
-        albums = response.json()['tracks']
-        albums_list = map(lambda x:[x['album_id'],x['album_title'], x['language'], x['albumseokey']], albums)
-        tabledata = [['S No.', 'Album Title', 'Album Language']]
+        albums = response.json()['album']
+        albums_list = map(lambda x:[x['album_id'],x['title'], x['language'], x['seokey'], x['release_date'],','.join(map(lambda y:y['name'], x['artist'][:2])) ,x['trackcount']], albums)
+        tabledata = [['S No.', 'Album Title', 'Album Language', 'Release Date', 'Artists', 'Track Count']]
         for idx, value in enumerate(albums_list):
-            tabledata.append([str(idx), value[1], value[2]])
+            tabledata.append([str(idx), value[1], value[2], value[4], value[5], value[6]])
         table = AsciiTable(tabledata)
         print table.table
         idx = int(raw_input('Which album do you wish to download? Enter S No. :'))
@@ -97,19 +96,18 @@ class GaanaDownloader():
         album_details_url = album_details_url.format(album_id = albums_list[idx][0])
         response = requests.get(album_details_url , headers = {'deviceType':'GaanaAndroidApp', 'appVersion':'V5'})
         tracks = response.json()['tracks']
-        tracks_list = map(lambda x:[x['track_title'],x['track_id'],x['album_id'],x['album_title'], ','.join(map(lambda y:y['name'], x['artist'])), x['duration']], tracks)
+        tracks_list = map(lambda x:[x['track_title'].strip(),x['track_id'],x['album_id'],x['album_title'], ','.join(map(lambda y:y['name'], x['artist'])), x['duration']], tracks)
         print 'List of tracks for ', albums_list[idx][1]
-        tabledata = [['S No.', 'Track Title', 'Track Artist', 'Track Duration']]
+        tabledata = [['S No.', 'Track Title', 'Track Artist']]
         for idy, value in enumerate(tracks_list):
-            duration = '%.2f'
-            tabledata.append([str(idy), value[0], value[4], duration%(float(value[5])/60)])
+            tabledata.append([str(idy), value[0], value[4]])
         table = AsciiTable(tabledata)
         print table.table
         print 'Downloading tracks to %s folder'%albums_list[idx][3]
         os.system('mkdir %s'%albums_list[idx][3])
         for item in tracks_list:
             song_url = self._get_song_url(item[1], item[2])
-            self._download_track(song_url, item[0].replace(' ','-'), albums_list[idx][3])
+            self._download_track(song_url, item[0].replace(' ','-').strip(), albums_list[idx][3])
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
