@@ -1,7 +1,7 @@
+#!/usr/bin/python
 import requests, re, sys, os
 import argparse
 from bs4 import BeautifulSoup
-from flask.ext.script import Manager
 from terminaltables import AsciiTable
 
 proxies = {'http':'http://192.168.1.8:8080',
@@ -62,8 +62,23 @@ class GaanaDownloader():
         with open(file_path,'wb') as f:
             f.write(response.content)
 
-    def search_songs(self, query):
+    def _check_path(self, _dir):
+        import os
+        if not os.path.exists(_dir):
+            os.system('mkdir %s'%_dir)
+
+    def _check_input(self, ids, len_of_tracks):
+        ids = map(lambda x:x.strip(),ids.split(','))
+        for i in ids:
+            if not i.isdigit():
+                return False
+            if int(i) > len_of_tracks:
+                return False
+        return True
+
+    def search_songs(self, query, _dir = 'misc'):
         from pprint import pprint
+        self._check_path(_dir)
         url = self.urls['search_songs_new']
         url = url.format(query = query)
         response = self._get_url_contents(url)
@@ -74,18 +89,21 @@ class GaanaDownloader():
             tabledata.append([str(idx), value[0], value[4], value[3]])
         table = AsciiTable(tabledata)
         print table.table
-        idx = int(raw_input('Which album do you wish to download? Enter S No. :'))
+        idx = raw_input('Which album do you wish to download? Enter S No. :')
+        while not self._check_input(idx, len(tracks_list)-1):
+            print 'Oops!! You made some error in entering input'
+            idx = raw_input('Which album do you wish to download? Enter S No. :')
+        idx = int(idx)
         song_url = self._get_song_url(tracks_list[idx][1], tracks_list[idx][2])
-        os.system('mkdir misc')
-        self._download_track(song_url, tracks_list[idx][0].replace(' ','-'), 'misc')
+        self._download_track(song_url, tracks_list[idx][0].replace(' ','-'), _dir)
 
-    def search_albums(self, query):
+    def search_albums(self, query, _dir = None):
         from pprint import pprint
         url = self.urls['search_albums_new']
         url = url.format(query = query)
         response = self._get_url_contents(url)
         albums = response.json()['album']
-        albums_list = map(lambda x:[x['album_id'],x['title'], x['language'], x['seokey'], x['release_date'],','.join(map(lambda y:y['name'], x['artist'][:2])) ,x['trackcount']], albums)
+        albums_list = map(lambda x:[x['album_id'],x['title'], x['language'], x['seokey'], x['release_date'],','.join(map(lambda y:y['name'], x.get('artists',[])[:2])) ,x['trackcount']], albums)
         tabledata = [['S No.', 'Album Title', 'Album Language', 'Release Date', 'Artists', 'Track Count']]
         for idx, value in enumerate(albums_list):
             tabledata.append([str(idx), value[1], value[2], value[4], value[5], value[6]])
@@ -101,23 +119,40 @@ class GaanaDownloader():
         tabledata = [['S No.', 'Track Title', 'Track Artist']]
         for idy, value in enumerate(tracks_list):
             tabledata.append([str(idy), value[0], value[4]])
+        tabledata.append([str(idy+1), 'Enter this to download them all.',''])
         table = AsciiTable(tabledata)
         print table.table
         print 'Downloading tracks to %s folder'%albums_list[idx][3]
-        os.system('mkdir %s'%albums_list[idx][3])
-        for item in tracks_list:
-            song_url = self._get_song_url(item[1], item[2])
-            self._download_track(song_url, item[0].replace(' ','-').strip(), albums_list[idx][3])
+        ids = raw_input('Please enter csv of S no. to download:')
+        while not self._check_input(ids, len(tracks_list)) or not ids:
+            print 'Oops!! You made some error in entering input'
+            ids = raw_input('Please enter csv of S no. to download:')
+        if not _dir:
+            _dir = albums_list[idx][3]
+        self._check_path(_dir)
+        ids = map(int,map(lambda x:x.strip(),ids.split(',')))
+        if len(ids) == 1 and ids[0] == idy + 1:
+            for item in tracks_list:
+                song_url = self._get_song_url(item[1], item[2])
+                self._download_track(song_url, item[0].replace(' ','-').strip(), _dir)
+        else:
+            for i in ids:
+                item = tracks_list[i]
+                song_url = self._get_song_url(item[1], item[2])
+                self._download_track(song_url, item[0].replace(' ','-').strip(), _dir)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-a', '--album', nargs='?', help="choose this to search albums. Space seperated query must be enclosed in quotes('')")
-    parser.add_argument('-s', '--song', nargs='?', help="choose this to search songs. Space seperated query must be enclosed in quotes('')")
+    parser.add_argument('-a', '--album', nargs='?', help="choose this to search albums. Space seperated query must be enclosed in quotes('')", type = str )
+    parser.add_argument('-s', '--song', nargs='?', help="choose this to search songs. Space seperated query must be enclosed in quotes('')", type = str)
+    parser.add_argument('-d', '--dir', nargs='?', help="can be used to specify directory to download songs to", type = str)
     args = parser.parse_args()
     d = GaanaDownloader()
     if args.album:
-        d.search_albums(args.album)
+        if args.dir:
+            d.search_albums(args.album, args.dir)
     elif args.song:
-        d.search_songs(args.song)
+        if args.dir:
+            d.search_songs(args.song, args.dir)
     else:
         print parser.parse_args(['--help'])
