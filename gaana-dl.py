@@ -151,8 +151,12 @@ if __name__ == '__main__':
     if args.album:
         if args.dir:
             d.search_albums(args.album, args.dir)
+        else:
+            d.search_albums(args.album)
     elif args.song:
         if args.dir:
             d.search_songs(args.song, args.dir)
+        else:
+            d.search_songs(args.song)
     else:
         print parser.parse_args(['--help'])
