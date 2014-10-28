@@ -25,3 +25,6 @@ Usage
                         choose this to search songs. Space seperated query
                         must be enclosed in quotes('')
 
+  + -d [DIR], --dir [DIR]
+                        can be used to specify directory to download songs to
+
