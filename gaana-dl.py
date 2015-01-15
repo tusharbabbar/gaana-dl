@@ -83,19 +83,23 @@ class GaanaDownloader():
         url = url.format(query = query)
         response = self._get_url_contents(url)
         tracks = response.json()['tracks']
-        tracks_list = map(lambda x:[x['track_title'],x['track_id'],x['album_id'],x['album_title'], ','.join(map(lambda y:y['name'], x['artist'])), x['duration']], tracks)
-        tabledata = [['S No.', 'Track Title', 'Track Artist', 'Album']]
-        for idx, value in enumerate(tracks_list):
-            tabledata.append([str(idx), value[0], value[4], value[3]])
-        table = AsciiTable(tabledata)
-        print table.table
-        idx = raw_input('Which album do you wish to download? Enter S No. :')
-        while not self._check_input(idx, len(tracks_list)-1):
-            print 'Oops!! You made some error in entering input'
+        if tracks:
+            tracks_list = map(lambda x:[x['track_title'],x['track_id'],x['album_id'],x['album_title'], ','.join(map(lambda y:y['name'], x['artist'])), x['duration']], tracks)
+            tabledata = [['S No.', 'Track Title', 'Track Artist', 'Album']]
+            for idx, value in enumerate(tracks_list):
+                tabledata.append([str(idx), value[0], value[4], value[3]])
+            table = AsciiTable(tabledata)
+            print table.table
             idx = raw_input('Which album do you wish to download? Enter S No. :')
-        idx = int(idx)
-        song_url = self._get_song_url(tracks_list[idx][1], tracks_list[idx][2])
-        self._download_track(song_url, tracks_list[idx][0].replace(' ','-'), _dir)
+            while not self._check_input(idx, len(tracks_list)-1):
+                print 'Oops!! You made some error in entering input'
+                idx = raw_input('Which album do you wish to download? Enter S No. :')
+            idx = int(idx)
+            song_url = self._get_song_url(tracks_list[idx][1], tracks_list[idx][2])
+            self._download_track(song_url, tracks_list[idx][0].replace(' ','-'), _dir)
+        else:
+            print 'Ooopsss!!! Sorry no track found matching your query'
+            print 'Why not try another Song? :)'
 
     def search_albums(self, query, _dir = None):
         from pprint import pprint
@@ -103,43 +107,47 @@ class GaanaDownloader():
         url = url.format(query = query)
         response = self._get_url_contents(url)
         albums = response.json()['album']
-        albums_list = map(lambda x:[x['album_id'],x['title'], x['language'], x['seokey'], x['release_date'],','.join(map(lambda y:y['name'], x.get('artists',[])[:2])) ,x['trackcount']], albums)
-        tabledata = [['S No.', 'Album Title', 'Album Language', 'Release Date', 'Artists', 'Track Count']]
-        for idx, value in enumerate(albums_list):
-            tabledata.append([str(idx), value[1], value[2], value[4], value[5], value[6]])
-        table = AsciiTable(tabledata)
-        print table.table
-        idx = int(raw_input('Which album do you wish to download? Enter S No. :'))
-        album_details_url = self.urls['album_details']
-        album_details_url = album_details_url.format(album_id = albums_list[idx][0])
-        response = requests.get(album_details_url , headers = {'deviceType':'GaanaAndroidApp', 'appVersion':'V5'})
-        tracks = response.json()['tracks']
-        tracks_list = map(lambda x:[x['track_title'].strip(),x['track_id'],x['album_id'],x['album_title'], ','.join(map(lambda y:y['name'], x['artist'])), x['duration']], tracks)
-        print 'List of tracks for ', albums_list[idx][1]
-        tabledata = [['S No.', 'Track Title', 'Track Artist']]
-        for idy, value in enumerate(tracks_list):
-            tabledata.append([str(idy), value[0], value[4]])
-        tabledata.append([str(idy+1), 'Enter this to download them all.',''])
-        table = AsciiTable(tabledata)
-        print table.table
-        print 'Downloading tracks to %s folder'%albums_list[idx][3]
-        ids = raw_input('Please enter csv of S no. to download:')
-        while not self._check_input(ids, len(tracks_list)) or not ids:
-            print 'Oops!! You made some error in entering input'
+        if albums:
+            albums_list = map(lambda x:[x['album_id'],x['title'], x['language'], x['seokey'], x['release_date'],','.join(map(lambda y:y['name'], x.get('artists',[])[:2])) ,x['trackcount']], albums)
+            tabledata = [['S No.', 'Album Title', 'Album Language', 'Release Date', 'Artists', 'Track Count']]
+            for idx, value in enumerate(albums_list):
+                tabledata.append([str(idx), value[1], value[2], value[4], value[5], value[6]])
+            table = AsciiTable(tabledata)
+            print table.table
+            idx = int(raw_input('Which album do you wish to download? Enter S No. :'))
+            album_details_url = self.urls['album_details']
+            album_details_url = album_details_url.format(album_id = albums_list[idx][0])
+            response = requests.get(album_details_url , headers = {'deviceType':'GaanaAndroidApp', 'appVersion':'V5'})
+            tracks = response.json()['tracks']
+            tracks_list = map(lambda x:[x['track_title'].strip(),x['track_id'],x['album_id'],x['album_title'], ','.join(map(lambda y:y['name'], x['artist'])), x['duration']], tracks)
+            print 'List of tracks for ', albums_list[idx][1]
+            tabledata = [['S No.', 'Track Title', 'Track Artist']]
+            for idy, value in enumerate(tracks_list):
+                tabledata.append([str(idy), value[0], value[4]])
+            tabledata.append([str(idy+1), 'Enter this to download them all.',''])
+            table = AsciiTable(tabledata)
+            print table.table
+            print 'Downloading tracks to %s folder'%albums_list[idx][3]
             ids = raw_input('Please enter csv of S no. to download:')
-        if not _dir:
-            _dir = albums_list[idx][3]
-        self._check_path(_dir)
-        ids = map(int,map(lambda x:x.strip(),ids.split(',')))
-        if len(ids) == 1 and ids[0] == idy + 1:
-            for item in tracks_list:
-                song_url = self._get_song_url(item[1], item[2])
-                self._download_track(song_url, item[0].replace(' ','-').strip(), _dir)
+            while not self._check_input(ids, len(tracks_list)) or not ids:
+                print 'Oops!! You made some error in entering input'
+                ids = raw_input('Please enter csv of S no. to download:')
+            if not _dir:
+                _dir = albums_list[idx][3]
+            self._check_path(_dir)
+            ids = map(int,map(lambda x:x.strip(),ids.split(',')))
+            if len(ids) == 1 and ids[0] == idy + 1:
+                for item in tracks_list:
+                    song_url = self._get_song_url(item[1], item[2])
+                    self._download_track(song_url, item[0].replace(' ','-').strip(), _dir)
+            else:
+                for i in ids:
+                    item = tracks_list[i]
+                    song_url = self._get_song_url(item[1], item[2])
+                    self._download_track(song_url, item[0].replace(' ','-').strip(), _dir)
         else:
-            for i in ids:
-                item = tracks_list[i]
-                song_url = self._get_song_url(item[1], item[2])
-                self._download_track(song_url, item[0].replace(' ','-').strip(), _dir)
+            print 'Ooopsss!!! Sorry no such album found.'
+            print 'Why not try another Album? :)'
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
