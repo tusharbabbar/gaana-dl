@@ -8,6 +8,11 @@ Search your favorite songs in the terminal and listen it all day long even witho
 
 Just Clone this Repo.
 
+Installation
+============
+* `git clone git@github.com:tusharbabbar/gaana-dl.git`
+* `pip install -r requirements.txt`
+
 Usage
 =====
 * usage: gaana-dl.py&nbsp;[-h] [-a [ALBUM]] [-s [SONG]]
